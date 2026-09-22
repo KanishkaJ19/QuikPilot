@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuikSplit</title>
+<style>
+  :root { --bg:#faf9f7; --ink:#1c1b1a; --muted:#6b6863; --line:#e4e1dc; --accent:#2f6f4e; --neg:#a8443a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:28px 24px 18px; border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:22px; letter-spacing:-.01em; }
+  header p { margin:4px 0 0; color:var(--muted); font-size:14px; }
+  main { max-width:760px; margin:0 auto; padding:24px; }
+  section { background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:18px; }
+  h2 { margin:0 0 12px; font-size:15px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:15px; }
+  td { padding:7px 0; border-bottom:1px solid var(--line); }
+  tr:last-child td { border-bottom:none; }
+  .amt { text-align:right; font-variant-numeric:tabular-nums; }
+  .pos { color:var(--accent); } .neg { color:var(--neg); }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  input, select { width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:7px; font:inherit; background:#fff; }
+  .row { display:grid; grid-template-columns:1fr 150px; gap:12px; }
+  button { margin-top:14px; padding:10px 18px; border:none; border-radius:7px; background:var(--ink); color:#fff; font:inherit; cursor:pointer; }
+  button:hover { opacity:.9; }
+  .err { margin-top:10px; padding:9px 12px; border-radius:7px; background:#fdf0ee; color:var(--neg); font-size:14px; display:none; }
+  .settle { font-size:15px; padding:6px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>QuikSplit</h1>
+  <p>Shared expenses, settled honestly.</p>
+</header>
+<main>
+  <section>
+    <h2>Group</h2>
+    <select id="group"></select>
+  </section>
+
+  <section>
+    <h2>Balances</h2>
+    <table id="balances"></table>
+  </section>
+
+  <section>
+    <h2>Settle up</h2>
+    <div id="settlements"></div>
+  </section>
+
+  <section>
+    <h2>Add an expense</h2>
+    <label for="desc">Description</label>
+    <input id="desc" placeholder="Dinner at Gunpowder">
+    <div class="row">
+      <div>
+        <label for="paidBy">Paid by</label>
+        <select id="paidBy"></select>
+      </div>
+      <div>
+        <label for="amount">Amount</label>
+        <input id="amount" placeholder="0.00" inputmode="decimal">
+      </div>
+    </div>
+    <button id="add">Add expense</button>
+    <div class="err" id="err"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let current = null;
+
+async function loadGroups() {
+  const groups = await (await fetch("/api/groups")).json();
+  $("group").innerHTML = groups.map(g => `<option value="${g.id}">${g.name}</option>`).join("");
+  await loadGroup(groups[0].id);
+}
+
+async function loadGroup(id) {
+  current = await (await fetch(`/api/groups/${id}`)).json();
+  const nameOf = (uid) => current.members.find(m => m.id === uid)?.name ?? uid;
+
+  $("balances").innerHTML = current.members.map(m => {
+    const v = current.balancesDisplay[m.id];
+    const cls = current.balances[m.id] >= 0 ? "pos" : "neg";
+    return `<tr><td>${m.name}</td><td class="amt ${cls}">${v}</td></tr>`;
+  }).join("");
+
+  $("settlements").innerHTML = current.settlements.length
+    ? current.settlements.map(s =>
+        `<div class="settle">${nameOf(s.from)} pays ${nameOf(s.to)} <strong>${(s.amountMinor/100).toFixed(2)}</strong></div>`).join("")
+    : `<div class="settle" style="color:var(--muted)">Everyone is square.</div>`;
+
+  $("paidBy").innerHTML = current.members.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+}
+
+$("group").onchange = (e) => loadGroup(e.target.value);
+
+$("add").onclick = async () => {
+  $("err").style.display = "none";
+  const res = await fetch(`/api/groups/${current.id}/expenses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      description: $("desc").value,
+      amount: $("amount").value,
+      paidBy: $("paidBy").value,
+      participants: current.members.map(m => m.id),
+    }),
+  });
+  if (!res.ok) {
+    const e = await res.json();
+    $("err").textContent = e.error;
+    $("err").style.display = "block";
+    return;
+  }
+  $("desc").value = ""; $("amount").value = "";
+  await loadGroup(current.id);
+};
+
+loadGroups();
+</script>
+</body>
+</html>

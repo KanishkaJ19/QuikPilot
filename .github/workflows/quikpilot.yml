@@ -1,0 +1,80 @@
+# ============================================================================
+# QuikPilot — GENERATED FILE. Do not edit by hand.
+#
+# The "Run QuikPilot" step below runs a small, version-pinned tool we publish
+# publicly: https://www.npmjs.com/package/@quikit/quikpilot-runner — read its
+# source any time. It fetches this run's work packet, runs your setup/lint/test
+# commands, reports results to QuikTest, enforces the denied-path guardrail,
+# commits, pushes, and reports back to QuikTrack. The version is pinned exactly
+# (never a floating tag) so a new release only reaches you through a new pull
+# request here, same as any other change to this file.
+#
+# This file lives in YOUR repository, so QuikIT cannot update it. Any change
+# arrives as a new pull request.
+#
+# templateVersion: 7
+# project: cmub758vp00bzxhri6iqbf0u1
+# ============================================================================
+name: QuikPilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: QuikPilot run id
+        required: true
+      callback_url:
+        description: Where QuikPilot expects the result
+        required: true
+      packet_url:
+        description: Where to fetch this run's work packet
+        required: true
+      token_url:
+        description: Where to exchange a GitHub OIDC token for a QuikPilot run token
+        required: true
+      installation_token_url:
+        description: Where to exchange the run token for a repo-scoped GitHub push credential
+        required: true
+
+# Two dispatches for one run must never race.
+concurrency:
+  group: quikpilot-${{ inputs.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  # Read only — checkout is all the ambient token does now. The push itself
+  # uses a separately-minted, repo-scoped installation token (QUIKTR-804,
+  # D16): a push authored by the ambient token never triggered the
+  # customer's own `on: push` CI, which was the entire reason D16 existed.
+  contents: read
+  # Lets the job request a short-lived, GitHub-signed OIDC ID token — its
+  # proof of identity when exchanging for a QuikPilot run token at TOKEN_URL,
+  # replacing a run token handed to it as a dispatch input (QUIKTR-805, D12).
+  id-token: write
+
+jobs:
+  quikpilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Handed to the launched package below, never echoed or written to a
+      # file. None of these carry a secret: the package exchanges a GitHub
+      # OIDC token for a run token at TOKEN_URL, then the run token for a
+      # push credential at INSTALLATION_TOKEN_URL — see packages/quikpilot-runner.
+      TOKEN_URL: ${{ inputs.token_url }}
+      INSTALLATION_TOKEN_URL: ${{ inputs.installation_token_url }}
+      CALLBACK_URL: ${{ inputs.callback_url }}
+      PACKET_URL: ${{ inputs.packet_url }}
+      RUN_ID: ${{ inputs.run_id }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run QuikPilot
+        run: npx --yes @quikit/quikpilot-runner@7.0.6
