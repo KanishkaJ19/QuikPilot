@@ -65,9 +65,16 @@ export const app = createServer(async (req, res) => {
       if (body === null) return json(res, 400, { error: "Body must be valid JSON." });
 
       const memberIds = group.members.map((m) => m.id);
-      const expense = validateExpense(body, memberIds);
-      const created = addExpense(group, expense);
-      return json(res, 201, created);
+      try {
+        const expense = validateExpense(body, memberIds);
+        const created = addExpense(group, expense);
+        return json(res, 201, created);
+      } catch (err) {
+        if (err instanceof ValidationError) {
+          return json(res, err.status, { error: err.message, field: err.field });
+        }
+        throw err; // Re-throw other errors to be caught by the outer catch block
+      }
     }
 
     return json(res, 404, { error: "Not found." });
