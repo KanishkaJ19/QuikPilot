@@ -51,3 +51,15 @@ export function validateExpense(input, memberIds) {
 
   return { description, amountMinor, paidBy: input.paidBy, participants };
 }
+
+export function validateAmountInput(input) {
+  if (input === null || input === undefined || input === "") {
+    return null; // Allow empty input for optional fields or initial state
+  }
+  // Regex to allow only digits and at most one decimal point
+  const validAmountRegex = /^\d*\.?\d*$/;
+  if (!validAmountRegex.test(input)) {
+    return "Invalid characters. Only numbers and a single decimal point are allowed.";
+  }
+  return null;
+}
