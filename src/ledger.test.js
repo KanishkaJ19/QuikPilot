@@ -78,6 +78,42 @@ describe("computeBalances", () => {
     expect(b.p5).toBe(-600);
     assertBalanced(b);
   });
+
+  it("handles expenses with a single participant correctly", () => {
+    const g = group();
+    addExpense(g, { description: "Solo Lunch", amountMinor: 500, paidBy: "u1", participants: ["u1"] });
+    const b = computeBalances(g);
+    expect(b.u1).toBe(0);
+    expect(b.u2).toBe(0);
+    expect(b.u3).toBe(0);
+    assertBalanced(b);
+  });
+
+  it("handles expenses with two participants correctly", () => {
+    const g = group();
+    addExpense(g, { description: "Coffee", amountMinor: 300, paidBy: "u1", participants: ["u1", "u2"] });
+    const b = computeBalances(g);
+    expect(b.u1).toBe(150);
+    expect(b.u2).toBe(-150);
+    expect(b.u3).toBe(0);
+    assertBalanced(b);
+  });
+
+  it("handles multiple expenses with varying participant counts", () => {
+    const g = group();
+    addExpense(g, { description: "Dinner", amountMinor: 900, paidBy: "u1", participants: ["u1", "u2", "u3"] });
+    addExpense(g, { description: "Solo Snack", amountMinor: 100, paidBy: "u2", participants: ["u2"] });
+    addExpense(g, { description: "Movie", amountMinor: 600, paidBy: "u3", participants: ["u1", "u3"] });
+
+    const b = computeBalances(g);
+    // Expense 1 (900, u1 pays, u1,u2,u3 participate): u1: 600, u2: -300, u3: -300
+    // Expense 2 (100, u2 pays, u2 participates): u1: 600, u2: -300, u3: -300 (no change to balances)
+    // Expense 3 (600, u3 pays, u1,u3 participate): u1: 600 - 300 = 300, u2: -300, u3: -300 - 300 + 600 = 0
+    expect(b.u1).toBe(300);
+    expect(b.u2).toBe(-300);
+    expect(b.u3).toBe(0);
+    assertBalanced(b);
+  });
 });
 
 describe("settleUp", () => {
