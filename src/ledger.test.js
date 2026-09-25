@@ -24,6 +24,60 @@ describe("computeBalances", () => {
     addExpense(g, { description: "Taxi", amountMinor: 1000, paidBy: "u1", participants: ["u1", "u2", "u3"] });
     assertBalanced(computeBalances(g));
   });
+
+  it("[QTRK-701] correctly allocates values for any participant count, including handling remainders consistently", () => {
+    const g = createGroup("g2", "Test Group 2", [
+      { id: "p1", name: "P1" },
+      { id: "p2", name: "P2" },
+      { id: "p3", name: "P3" },
+      { id: "p4", name: "P4" },
+      { id: "p5", name: "P5" },
+    ]);
+
+    // Test with an amount that divides evenly
+    addExpense(g, { description: "Even Split", amountMinor: 1000, paidBy: "p1", participants: ["p1", "p2", "p3", "p4", "p5"] });
+    let b = computeBalances(g);
+    expect(b.p1).toBe(800);
+    expect(b.p2).toBe(-200);
+    expect(b.p3).toBe(-200);
+    expect(b.p4).toBe(-200);
+    expect(b.p5).toBe(-200);
+    assertBalanced(b);
+
+    // Test with an amount that does not divide evenly (remainder 1)
+    addExpense(g, { description: "Uneven Split 1", amountMinor: 1001, paidBy: "p1", participants: ["p1", "p2", "p3", "p4", "p5"] });
+    b = computeBalances(g);
+    // Initial balances: p1: 800, p2: -200, p3: -200, p4: -200, p5: -200
+    // New expense: 1001 / 5 = 200 remainder 1. Shares: 201, 200, 200, 200, 200
+    // p1: 800 - 201 + 1001 = 1599
+    // p2: -200 - 200 = -400
+    // p3: -200 - 200 = -400
+    // p4: -200 - 200 = -400
+    // p5: -200 - 200 = -400
+    expect(b.p1).toBe(1599);
+    expect(b.p2).toBe(-400);
+    expect(b.p3).toBe(-400);
+    expect(b.p4).toBe(-400);
+    expect(b.p5).toBe(-400);
+    assertBalanced(b);
+
+    // Test with an amount that does not divide evenly (remainder 4)
+    addExpense(g, { description: "Uneven Split 4", amountMinor: 1004, paidBy: "p2", participants: ["p1", "p2", "p3", "p4", "p5"] });
+    b = computeBalances(g);
+    // Initial balances: p1: 1599, p2: -400, p3: -400, p4: -400, p5: -400
+    // New expense: 1004 / 5 = 200 remainder 4. Shares: 201, 201, 201, 201, 200
+    // p1: 1599 - 201 = 1398
+    // p2: -400 - 201 + 1004 = 403
+    // p3: -400 - 201 = -601
+    // p4: -400 - 201 = -601
+    // p5: -400 - 200 = -600
+    expect(b.p1).toBe(1398);
+    expect(b.p2).toBe(403);
+    expect(b.p3).toBe(-601);
+    expect(b.p4).toBe(-601);
+    expect(b.p5).toBe(-600);
+    assertBalanced(b);
+  });
 });
 
 describe("settleUp", () => {

@@ -31,7 +31,9 @@ export function computeBalances(group) {
   const balances = Object.fromEntries(group.members.map((m) => [m.id, 0]));
 
   for (const exp of group.expenses) {
-    const shares = splitEvenly(exp.amountMinor, exp.participants.length);
+    // Dynamically determine the number of participants from the expense data
+    const numParticipants = exp.participants.length;
+    const shares = splitEvenly(exp.amountMinor, numParticipants);
     exp.participants.forEach((memberId, i) => {
       balances[memberId] -= shares[i];
     });
