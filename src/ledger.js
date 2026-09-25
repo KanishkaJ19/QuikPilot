@@ -17,6 +17,10 @@ export function createGroup(id, name, members) {
 export function addExpense(group, expense) {
   // Validate amount to ensure it's a positive whole number
   validatePositiveInteger(expense.amountMinor, "amountMinor");
+  // Validate that there is at least one participant
+  if (!expense.participants || expense.participants.length === 0) {
+    throw new Error("An expense must have at least one participant.");
+  }
 
   const entry = { id: `exp_${group.expenses.length + 1}`, ...expense, createdAt: new Date().toISOString() };
   group.expenses.push(entry);
