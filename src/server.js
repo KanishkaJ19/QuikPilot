@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { getGroup, listGroups } from "./store.js";
 import { addExpense, computeBalances, settleUp } from "./ledger.js";
-import { validateExpense, ValidationError } from "./validation.js";
+import { validateExpense, ValidationError, validatePositiveInteger } from "./validation.js";
 import { fromMinor } from "./money.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -66,6 +66,8 @@ export const app = createServer(async (req, res) => {
 
       const memberIds = group.members.map((m) => m.id);
       try {
+        // Validate amountMinor before adding expense
+        validatePositiveInteger(body.amountMinor, "amountMinor");
         const expense = validateExpense(body, memberIds);
         const created = addExpense(group, expense);
         return json(res, 201, created);
