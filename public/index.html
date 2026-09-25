@@ -26,6 +26,8 @@
   button:hover { opacity:.9; }
   .err { margin-top:10px; padding:9px 12px; border-radius:7px; background:#fdf0ee; color:var(--neg); font-size:14px; display:none; }
   .settle { font-size:15px; padding:6px 0; }
+  .participants-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:8px; margin-top:10px; }
+  .participant-item { display:flex; align-items:center; gap:5px; font-size:14px; }
 </style>
 </head>
 <body>
@@ -63,6 +65,8 @@
         <input id="amount" placeholder="0.00" inputmode="decimal">
       </div>
     </div>
+    <label>Participants</label>
+    <div id="participants" class="participants-grid"></div>
     <button id="add">Add expense</button>
     <div class="err" id="err"></div>
   </section>
@@ -93,12 +97,22 @@ async function loadGroup(id) {
     : `<div class="settle" style="color:var(--muted)">Everyone is square.</div>`;
 
   $("paidBy").innerHTML = current.members.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+
+  $("participants").innerHTML = current.members.map(m => `
+    <div class="participant-item">
+      <input type="checkbox" id="participant-${m.id}" value="${m.id}" checked>
+      <label for="participant-${m.id}">${m.name}</label>
+    </div>
+  `).join("");
 }
 
 $("group").onchange = (e) => loadGroup(e.target.value);
 
 $("add").onclick = async () => {
   $("err").style.display = "none";
+  const selectedParticipants = Array.from($("participants").querySelectorAll('input[type="checkbox"]:checked'))
+    .map(checkbox => checkbox.value);
+
   const res = await fetch(`/api/groups/${current.id}/expenses`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -106,7 +120,7 @@ $("add").onclick = async () => {
       description: $("desc").value,
       amount: $("amount").value,
       paidBy: $("paidBy").value,
-      participants: current.members.map(m => m.id),
+      participants: selectedParticipants,
     }),
   });
   if (!res.ok) {

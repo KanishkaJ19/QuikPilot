@@ -114,6 +114,31 @@ describe("computeBalances", () => {
     expect(b.u3).toBe(0);
     assertBalanced(b);
   });
+
+  it("[QTRK-702] throws an error if participants array is empty", () => {
+    const g = group();
+    expect(() => addExpense(g, { description: "Empty Participants", amountMinor: 100, paidBy: "u1", participants: [] })).toThrow("Participants array cannot be empty.");
+  });
+
+  it("[QTRK-703] throws an error if participants array contains duplicate members", () => {
+    const g = group();
+    expect(() => addExpense(g, { description: "Duplicate Participants", amountMinor: 100, paidBy: "u1", participants: ["u1", "u1"] })).toThrow("Participants array contains duplicate members.");
+  });
+
+  it("[QTRK-704] throws an error if paidBy is not in participants", () => {
+    const g = group();
+    expect(() => addExpense(g, { description: "Payer Not Participant", amountMinor: 100, paidBy: "u1", participants: ["u2", "u3"] })).toThrow("PaidBy member must be in the participants list.");
+  });
+
+  it("[QTRK-705] throws an error if any participant is not a valid group member", () => {
+    const g = group();
+    expect(() => addExpense(g, { description: "Invalid Participant", amountMinor: 100, paidBy: "u1", participants: ["u1", "u4"] })).toThrow("Participant u4 is not a member of the group.");
+  });
+
+  it("[QTRK-706] throws an error if paidBy is not a valid group member", () => {
+    const g = group();
+    expect(() => addExpense(g, { description: "Invalid Payer", amountMinor: 100, paidBy: "u4", participants: ["u1"] })).toThrow("PaidBy member u4 is not a member of the group.");
+  });
 });
 
 describe("settleUp", () => {
