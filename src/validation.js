@@ -46,6 +46,9 @@ export function validateExpense(input, memberIds) {
   if (participants.length === 0) {
     throw new ValidationError("participants", "At least one participant is required.");
   }
+  if (participants.length > memberIds.length) {
+    throw new ValidationError("participants", "Number of participants cannot exceed the number of group members.");
+  }
   for (const p of participants) {
     if (!memberIds.includes(p)) {
       throw new ValidationError("participants", `${p} is not a member of this group.`);
