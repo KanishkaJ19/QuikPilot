@@ -1,4 +1,5 @@
 import { splitEvenly } from "./money.js";
+import { validatePositiveInteger } from "./validation.js";
 
 /**
  * A group's ledger. Expenses go in; who-owes-whom comes out.
@@ -14,6 +15,9 @@ export function createGroup(id, name, members) {
 }
 
 export function addExpense(group, expense) {
+  // Validate amount to ensure it's a positive whole number
+  validatePositiveInteger(expense.amountMinor, "amountMinor");
+
   const entry = { id: `exp_${group.expenses.length + 1}`, ...expense, createdAt: new Date().toISOString() };
   group.expenses.push(entry);
   return entry;
