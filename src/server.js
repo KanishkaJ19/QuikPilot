@@ -64,6 +64,11 @@ export const app = createServer(async (req, res) => {
       const body = await readBody(req);
       if (body === null) return json(res, 400, { error: "Body must be valid JSON." });
 
+      // Ensure amount is a non-negative integer before validation and persistence
+      if (typeof body.amount !== 'number' || !Number.isInteger(body.amount) || body.amount < 0) {
+        return json(res, 400, { error: "Amount must be a non-negative integer.", field: "amount" });
+      }
+
       const memberIds = group.members.map((m) => m.id);
       try {
         const expense = validateExpense(body, memberIds);
