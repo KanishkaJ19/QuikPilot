@@ -68,6 +68,10 @@ export const app = createServer(async (req, res) => {
       try {
         // Validate amountMinor before adding expense
         validatePositiveInteger(body.amountMinor, "amountMinor");
+        // Ensure participants are provided and are valid members of the group
+        if (!Array.isArray(body.participants) || body.participants.length === 0) {
+          return json(res, 400, { error: "Expense must have at least one participant.", field: "participants" });
+        }
         const expense = validateExpense(body, memberIds);
         const created = addExpense(group, expense);
         return json(res, 201, created);
